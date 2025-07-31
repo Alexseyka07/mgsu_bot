@@ -103,7 +103,7 @@ func (h *MgsuHandler) handleGetCommand(message *tgbotapi.Message) {
 		studentInfo.Position,
 		studentInfo.BudgetPlaces,
 		studentInfo.MinPassingScore,
-		studentInfo.CreationDate,
+		h.formatDate(studentInfo.CreationDate),
 		studentInfo.CreationTime,
 		studentInfo.Direction,
 	)
@@ -271,20 +271,25 @@ func (h *MgsuHandler) extractCreationDateTime(doc *goquery.Document) (string, st
 		text := strings.TrimSpace(s.Text())
 		if strings.Contains(text, "Дата формирования") && strings.Contains(text, "Время формирования") {
 			// Парсим строку формата "Дата формирования - 31.07.2025. Время формирования - 10:01:01."
-			parts := strings.Split(text, ".")
 
-			for _, part := range parts {
-				part = strings.TrimSpace(part)
-				if strings.Contains(part, "Дата формирования") {
-					// Извлекаем дату
-					dateMatch := strings.TrimPrefix(part, "Дата формирования - ")
-					dateMatch = strings.TrimSpace(dateMatch)
-					creationDate = dateMatch
-				} else if strings.Contains(part, "Время формирования") {
-					// Извлекаем время
-					timeMatch := strings.TrimPrefix(part, "Время формирования - ")
-					timeMatch = strings.TrimSpace(timeMatch)
-					creationTime = timeMatch
+			// Ищем дату после "Дата формирования - "
+			if dateStart := strings.Index(text, "Дата формирования - "); dateStart != -1 {
+				dateStart += len("Дата формирования - ")
+				// Ищем следующую точку после даты
+				if dateEnd := strings.Index(text[dateStart:], ". Время формирования"); dateEnd != -1 {
+					creationDate = strings.TrimSpace(text[dateStart : dateStart+dateEnd])
+				}
+			}
+
+			// Ищем время после "Время формирования - "
+			if timeStart := strings.Index(text, "Время формирования - "); timeStart != -1 {
+				timeStart += len("Время формирования - ")
+				// Ищем следующую точку после времени
+				if timeEnd := strings.Index(text[timeStart:], "."); timeEnd != -1 {
+					creationTime = strings.TrimSpace(text[timeStart : timeStart+timeEnd])
+				} else {
+					// Если точки нет, берем до конца строки
+					creationTime = strings.TrimSpace(text[timeStart:])
 				}
 			}
 			return
@@ -312,6 +317,12 @@ func (h *MgsuHandler) extractDirection(doc *goquery.Document) string {
 	})
 
 	return direction
+}
+
+// formatDate форматирует дату из формата DD.MM.YYYY в читаемый вид
+func (h *MgsuHandler) formatDate(dateStr string) string {
+	// Просто возвращаем дату как есть
+	return dateStr
 }
 
 // parseStudentTable парсит таблицу студентов
@@ -541,7 +552,7 @@ func (h *MgsuHandler) sendNotificationToUser(chatID int64, uniqueCode int) {
 		studentInfo.Position,
 		studentInfo.BudgetPlaces,
 		studentInfo.MinPassingScore,
-		studentInfo.CreationDate,
+		h.formatDate(studentInfo.CreationDate),
 		studentInfo.CreationTime,
 		studentInfo.Direction,
 	)
