@@ -207,7 +207,7 @@ func (h *MgsuHandler) ParseStudentPosition(uniqueCode int) (*StudentInfo, error)
 		return nil, fmt.Errorf("ошибка парсинга таблицы: %v", err)
 	}
 
-	// Фильтруем студентов по высшему проходному приоритету (галочка в 14-м столбце)
+	// Фильтруем студентов по высшему проходному приоритету (галочка в 6-м столбце "Это высший проходной приоритет")
 	filteredStudents := h.filterByHighPassingPriority(students)
 
 	// Ищем позицию студента с указанным кодом
@@ -333,32 +333,36 @@ func (h *MgsuHandler) parseStudentTable(doc *goquery.Document) ([]StudentEntry, 
 	doc.Find("table").Each(func(i int, table *goquery.Selection) {
 		// Проверяем, что это нужная нам таблица по заголовкам
 		headers := table.Find("tr.header-row th")
-		if headers.Length() < 17 {
+		if headers.Length() < 16 {
 			return
 		}
 
 		// Парсим строки данных
 		table.Find("tr.data-row").Each(func(j int, row *goquery.Selection) {
 			cells := row.Find("td")
-			if cells.Length() >= 17 {
+			if cells.Length() >= 16 {
 				student := StudentEntry{
-					Number:                cells.Eq(0).Text(),
-					UniqueCode:            strings.TrimSpace(cells.Eq(1).Text()),
-					TotalScore:            strings.TrimSpace(cells.Eq(2).Text()),
-					SubjectScore:          strings.TrimSpace(cells.Eq(3).Text()),
-					Math:                  strings.TrimSpace(cells.Eq(4).Text()),
-					IT:                    strings.TrimSpace(cells.Eq(5).Text()),
-					Russian:               strings.TrimSpace(cells.Eq(6).Text()),
-					GeneralAchievements:   strings.TrimSpace(cells.Eq(7).Text()),
-					AdmissionConsent:      strings.TrimSpace(cells.Eq(8).Text()),
-					Priority:              strings.TrimSpace(cells.Eq(9).Text()),
-					MainHighPriority:      strings.TrimSpace(cells.Eq(10).Text()),
-					IsMainHighPriority:    strings.TrimSpace(cells.Eq(11).Text()),
-					HighPassingPriority:   strings.TrimSpace(cells.Eq(12).Text()),
-					IsHighPassingPriority: strings.TrimSpace(cells.Eq(13).Text()),
-					PPR9:                  strings.TrimSpace(cells.Eq(14).Text()),
-					PPR10:                 strings.TrimSpace(cells.Eq(15).Text()),
-					BVIBasis:              strings.TrimSpace(cells.Eq(16).Text()),
+					Number:                cells.Eq(0).Text(),                     // №
+					UniqueCode:            strings.TrimSpace(cells.Eq(1).Text()),  // Уникальный код
+					Priority:              strings.TrimSpace(cells.Eq(2).Text()),  // Приоритет
+					AdmissionConsent:      strings.TrimSpace(cells.Eq(3).Text()),  // Согласие на зачисление
+					HighPassingPriority:   strings.TrimSpace(cells.Eq(4).Text()),  // Высший проходной приоритет
+					IsHighPassingPriority: strings.TrimSpace(cells.Eq(5).Text()),  // Это высший проходной приоритет
+					MainHighPriority:      strings.TrimSpace(cells.Eq(6).Text()),  // Основной высший приоритет
+					TotalScore:            strings.TrimSpace(cells.Eq(7).Text()),  // Сумма баллов
+					SubjectScore:          strings.TrimSpace(cells.Eq(8).Text()),  // Сумма по предметам
+					Math:                  strings.TrimSpace(cells.Eq(9).Text()),  // Матем / ЧиИГ
+					IT:                    strings.TrimSpace(cells.Eq(10).Text()), // ИиИКТ / Физика / БезопЖизнедеят
+					Russian:               strings.TrimSpace(cells.Eq(11).Text()), // РусЯз
+					GeneralAchievements:   strings.TrimSpace(cells.Eq(12).Text()), // Общие ИД
+					BVIBasis:              strings.TrimSpace(cells.Eq(13).Text()), // Основание БВИ
+					PPR9:                  strings.TrimSpace(cells.Eq(14).Text()), // ППР (ч.9 с. 71 273-ФЗ)
+					PPR10:                 strings.TrimSpace(cells.Eq(15).Text()), // ППР (ч.10 с. 71 273-ФЗ)
+					IsMainHighPriority:    strings.TrimSpace(cells.Eq(16).Text()), // Номер предложения (используем поле IsMainHighPriority)
+					// Остальные столбцы пока не используем:
+					// cells.Eq(17) - Размещено на РВР
+					// cells.Eq(18) - ID заказчика (нет на РВР)
+					// cells.Eq(19) - Целевые ИД
 				}
 				students = append(students, student)
 			}
